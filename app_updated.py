@@ -28,7 +28,13 @@ from pathlib import Path
 # Add current directory to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from usl_inference import USLInferencePipeline
+try:
+    from usl_inference import USLInferencePipeline
+    MODELS_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: Model inference not available: {e}")
+    MODELS_AVAILABLE = False
+    USLInferencePipeline = None
 
 # ============================================================================
 # PAGE CONFIGURATION & STYLING
