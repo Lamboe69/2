@@ -31,10 +31,77 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
     from usl_inference import USLInferencePipeline
     MODELS_AVAILABLE = True
+    print("✅ USL inference module loaded successfully")
 except ImportError as e:
-    print(f"Warning: Model inference not available: {e}")
+    print(f"⚠️ USL inference module not available: {e}")
+    print("🔄 Using demo mode instead")
     MODELS_AVAILABLE = False
-    USLInferencePipeline = None
+
+    # Define demo pipeline here to ensure it's always available
+    class DemoInferencePipeline:
+        def __init__(self):
+            self.sign_vocab = {
+                0: 'fever', 1: 'cough', 2: 'pain', 3: 'diarrhea', 4: 'rash',
+                5: 'weakness', 6: 'headache', 7: 'vomiting', 8: 'chest'
+            }
+            self.screening_slots = [
+                'fever', 'cough_hemoptysis', 'diarrhea_dehydration',
+                'rash', 'exposure', 'travel', 'pregnancy'
+            ]
+            self.num_signs = len(self.sign_vocab)
+
+        def process_video(self, video_path):
+            import time
+            time.sleep(1.5)  # Simulate processing delay
+
+            import random
+            signs = random.sample(list(self.sign_vocab.values()), random.randint(2, 5))
+            screening_slot = random.choice(self.screening_slots)
+            response = random.choice(['yes', 'no', 'unknown'])
+
+            return {
+                'video_path': video_path,
+                'pose_frames': random.randint(200, 500),
+                'signs': {
+                    'sign_names': signs,
+                    'num_signs': len(signs),
+                    'confidence': round(random.uniform(0.75, 0.95), 2)
+                },
+                'screening': {
+                    'screening_slot': screening_slot,
+                    'response': response,
+                    'confidence': round(random.uniform(0.80, 0.98), 2),
+                    'slot_logits': [[0.1, 0.2, 0.7]],
+                    'response_logits': [[0.3, 0.6, 0.1]]
+                },
+                'timestamp': '2025-11-29T22:19:09',
+                'model_version': 'DEMO-v1.0'
+            }
+
+        def detect_danger_signs(self, result):
+            signs = result['signs']['sign_names']
+            danger_indicators = {
+                'emergency': ['emergency' in signs],
+                'severe_pain': ['severe' in signs and 'pain' in signs],
+                'breathing_difficulty': ['breathing_difficulty' in signs]
+            }
+            danger_detected = any(danger_indicators.values())
+            return {
+                'danger_detected': danger_detected,
+                'danger_signs': [sign for sign, detected in danger_indicators.items() if detected],
+                'triage_level': 'emergency' if danger_detected else 'routine',
+                'recommendations': ["Immediate medical attention required" if danger_detected else "Continue routine screening"]
+            }
+
+        def implement_skip_logic(self, completed_slots):
+            all_slots = self.screening_slots
+            for slot in all_slots:
+                if slot not in completed_slots:
+                    return slot
+            return None
+
+    # Make demo pipeline available globally
+    USLInferencePipeline = DemoInferencePipeline
 
 # ============================================================================
 # PAGE CONFIGURATION & STYLING
