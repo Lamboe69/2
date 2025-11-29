@@ -418,25 +418,34 @@ class DemoInferencePipeline:
 @st.cache_resource
 def load_models():
     """Load trained USL models or fallback to demo mode"""
+    # Use absolute paths to ensure files are found in any environment
+    base_dir = Path(__file__).resolve().parent
+    models_dir = base_dir / "usl_models"
+    sign_model_path = models_dir / "sign_recognition_model.pth"
+    screening_model_path = models_dir / "usl_screening_model.pth"
+    vocab_path = models_dir / "sign_vocabulary.json"
+
     try:
-        # Check if we have access to the real inference pipeline
-        if 'USLInferencePipeline' in globals() and USLInferencePipeline is not None and MODELS_AVAILABLE:
+        # Verify that model files exist before attempting to load
+        if all([sign_model_path.exists(), screening_model_path.exists(), vocab_path.exists()]):
+            print("✅ Model files found. Attempting to load real USL models...")
             pipeline = USLInferencePipeline(
-                sign_model_path='./usl_models/sign_recognition_model.pth',
-                screening_model_path='./usl_models/usl_screening_model.pth',
-                sign_vocab_path='./usl_models/sign_vocabulary.json',
+                sign_model_path=str(sign_model_path),
+                screening_model_path=str(screening_model_path),
+                sign_vocab_path=str(vocab_path),
                 device='cpu'  # Use CPU for better compatibility in web apps
             )
             print("✅ Real USL models loaded successfully!")
             return pipeline
         else:
-            # Fallback to demo mode
-            print("🔄 Using demo mode - models not available")
+            # Fallback to demo mode if files are missing
+            st.warning("⚠️ Model files not found in ./usl_models/. Running in Demo Mode.")
+            print("⚠️ Model files not found. Falling back to demo mode.")
             return DemoInferencePipeline()
 
     except Exception as e:
-        print(f"⚠️ Error loading real models: {e}")
-        print("🔄 Falling back to demo mode")
+        st.error(f"❌ An unexpected error occurred while loading models: {e}")
+        print(f"❌ An unexpected error occurred: {e}. Falling back to demo mode.")
         return DemoInferencePipeline()
 
 # Load models
