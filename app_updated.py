@@ -312,6 +312,24 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ============================================================================
+# SESSION STATE INITIALIZATION
+# ============================================================================
+
+if 'pipeline' not in st.session_state:
+    st.session_state.pipeline = None
+
+if 'analysis_history' not in st.session_state:
+    st.session_state.analysis_history = []
+
+if 'current_patient' not in st.session_state:
+    st.session_state.current_patient = {
+        'id': 'PATIENT-001',
+        'completed_slots': [],
+        'danger_signs': []
+    }
+
+
+# ============================================================================
 # MAIN HEADER
 # ============================================================================
 
@@ -328,23 +346,6 @@ st.markdown(f"""
     {"<p style='color: #FFD700; font-weight: bold; margin-top: 0.5rem;'>🎯 DEMO MODE - Upload videos to see AI-powered analysis!</p>" if is_demo_mode else ""}
 </div>
 """, unsafe_allow_html=True)
-
-# ============================================================================
-# SESSION STATE INITIALIZATION
-# ============================================================================
-
-if 'pipeline' not in st.session_state:
-    st.session_state.pipeline = None
-
-if 'analysis_history' not in st.session_state:
-    st.session_state.analysis_history = []
-
-if 'current_patient' not in st.session_state:
-    st.session_state.current_patient = {
-        'id': 'PATIENT-001',
-        'completed_slots': [],
-        'danger_signs': []
-    }
 
 # ============================================================================
 # MODEL LOADING
