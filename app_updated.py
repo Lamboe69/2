@@ -419,28 +419,31 @@ class DemoInferencePipeline:
 @st.cache_resource
 def load_models():
     """Load trained USL models or fallback to demo mode"""
-    # Use absolute paths to ensure files are found in any environment
-    base_dir = Path(__file__).resolve().parent
-    models_dir = base_dir / "usl_models"
-    sign_model_path = models_dir / "sign_recognition_model.pth"
-    screening_model_path = models_dir / "usl_screening_model.pth"
-    vocab_path = models_dir / "sign_vocabulary.json"
-
     try:
-        # Verify that model files exist before attempting to load
-        if all([sign_model_path.exists(), screening_model_path.exists(), vocab_path.exists()]):
+        # Check if the real models were imported successfully
+        if MODELS_AVAILABLE:
+            base_dir = Path(__file__).resolve().parent
+            models_dir = base_dir / "usl_models"
+            sign_model_path = models_dir / "sign_recognition_model.pth"
+            screening_model_path = models_dir / "usl_screening_model.pth"
+            vocab_path = models_dir / "sign_vocabulary.json"
+
+            # Verify that model files exist before attempting to load
+            if not all([sign_model_path.exists(), screening_model_path.exists(), vocab_path.exists()]):
+                st.warning("⚠️ Model files not found in ./usl_models/. Running in Demo Mode.")
+                return DemoInferencePipeline()
+
             print("✅ Model files found. Attempting to load real USL models...")
             pipeline = USLInferencePipeline(
                 sign_model_path=str(sign_model_path),
                 screening_model_path=str(screening_model_path),
                 sign_vocab_path=str(vocab_path),
-                device='cpu'  # Use CPU for better compatibility in web apps
+                device='cpu'
             )
             print("✅ Real USL models loaded successfully!")
             return pipeline
         else:
-            # Fallback to demo mode if files are missing
-            st.warning("⚠️ Model files not found in ./usl_models/. Running in Demo Mode.")
+            # If models were not available from the start, use the demo pipeline
             print("⚠️ Model files not found. Falling back to demo mode.")
             return DemoInferencePipeline()
 
