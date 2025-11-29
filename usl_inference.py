@@ -323,12 +323,6 @@ class USLInferencePipeline:
         self.sign_model.eval()
         self.screening_model.eval()
 
-        # Initialize pose extractor
-        self.pose_extractor = PoseExtractor()
-
-        # Initialize CTC decoder
-        self.ctc_decoder = CTCDecoder(blank_token=self.num_signs)
-
         print("✅ USL Inference Pipeline ready!")
 
     def extract_pose_from_video(self, video_path, max_frames=None):
@@ -342,7 +336,9 @@ class USLInferencePipeline:
         Returns:
             pose_array: (frames, 99) numpy array
         """
-        return self.pose_extractor.extract_pose_from_video(video_path, max_frames)
+        # Re-initialize PoseExtractor for each call to ensure statelessness
+        pose_extractor = PoseExtractor()
+        return pose_extractor.extract_pose_from_video(video_path, max_frames)
 
     def recognize_signs(self, pose_sequence):
         """
@@ -374,7 +370,8 @@ class USLInferencePipeline:
             logits = self.sign_model(pose_tensor)
 
             # Decode predictions
-            sign_sequences = self.ctc_decoder.decode_predictions(logits, self.sign_vocab)
+            ctc_decoder = CTCDecoder(blank_token=self.num_signs)
+            sign_sequences = ctc_decoder.decode_predictions(logits, self.sign_vocab)
 
         sign_names = sign_sequences[0] if sign_sequences else []
 
