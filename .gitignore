@@ -134,9 +134,10 @@ dmypy.json
 *.mov
 *.mkv
 temp_*
-usl_models/*.pth
-usl_models/*.json
-!usl_models/sign_vocabulary.json
+# Allow specific model files
+# !usl_models/sign_recognition_model.pth
+# !usl_models/usl_screening_model.pth
+# !usl_models/sign_vocabulary.json
 data/
 datasets/
 videos/
