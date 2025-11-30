@@ -56,29 +56,55 @@ except ImportError as e:
 
         def process_video(self, video_path):
             import time
+            import hashlib
             time.sleep(1.5)  # Simulate processing delay
 
+            # Generate consistent results based on video filename
+            # This ensures same video always gives same results
+            video_hash = hashlib.md5(video_path.encode()).hexdigest()
+            hash_int = int(video_hash[:8], 16)  # Use first 8 chars as seed
+
+            # Create deterministic random generator
             import random
-            signs = random.sample(list(self.sign_vocab.values()), random.randint(2, 5))
-            screening_slot = random.choice(self.screening_slots)
-            response = random.choice(['yes', 'no', 'unknown'])
+            random.seed(hash_int)
+
+            # Generate consistent demo results
+            num_signs = random.randint(2, 5)
+            signs = random.sample(list(self.sign_vocab.values()), num_signs)
+
+            # Consistent screening slot based on hash
+            slot_index = hash_int % len(self.screening_slots)
+            screening_slot = self.screening_slots[slot_index]
+
+            # Consistent response based on hash
+            response_options = ['yes', 'no', 'unknown']
+            response_index = (hash_int // len(self.screening_slots)) % len(response_options)
+            response = response_options[response_index]
+
+            # Consistent frame count
+            frame_base = 200 + (hash_int % 300)  # 200-500 range
+            pose_frames = frame_base
+
+            # Consistent confidence scores
+            sign_confidence = 0.75 + (hash_int % 20) / 100  # 0.75-0.94
+            screening_confidence = 0.80 + (hash_int % 18) / 100  # 0.80-0.97
 
             return {
                 'video_path': video_path,
-                'pose_frames': random.randint(200, 500),
+                'pose_frames': pose_frames,
                 'signs': {
                     'sign_names': signs,
                     'num_signs': len(signs),
-                    'confidence': round(random.uniform(0.75, 0.95), 2)
+                    'confidence': round(sign_confidence, 2)
                 },
                 'screening': {
                     'screening_slot': screening_slot,
                     'response': response,
-                    'confidence': round(random.uniform(0.80, 0.98), 2),
+                    'confidence': round(screening_confidence, 2),
                     'slot_logits': [[0.1, 0.2, 0.7]],
                     'response_logits': [[0.3, 0.6, 0.1]]
                 },
-                'timestamp': '2025-11-29T22:19:09',
+                'timestamp': '2025-11-29T17:08:29',
                 'model_version': 'DEMO-v1.0'
             }
 
