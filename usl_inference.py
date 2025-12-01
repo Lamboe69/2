@@ -181,63 +181,90 @@ class PoseExtractor:
             min_tracking_confidence=0.5
         )
 
-    def extract_pose_from_video(self, video_path, max_frames=None, target_fps=30):
-        """Extract pose sequence from video file with deterministic processing"""
+    def extract_pose_from_video(self, video_path, max_frames=150, target_fps=15):
+        """Extract pose sequence from video file with memory and performance optimizations"""
         cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
             raise ValueError(f"Could not open video: {video_path}")
 
         fps = cap.get(cv2.CAP_PROP_FPS)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        duration = total_frames / fps if fps > 0 else 0
 
-        if max_frames is None:
-            max_frames = min(total_frames, 500)  # Cap at 500 frames for consistency
+        # Limit processing for performance - shorter videos, fewer frames
+        if duration > 30:  # Videos longer than 30 seconds
+            max_frames = min(max_frames, 100)  # Reduce frames for long videos
+        elif duration > 60:  # Videos longer than 1 minute
+            max_frames = min(max_frames, 75)  # Further reduce
 
-        # Use fixed frame sampling for consistency
+        # Use lower frame rate for processing efficiency
         frame_interval = max(1, int(fps / target_fps)) if fps > target_fps else 1
 
         pose_sequence = []
         frame_count = 0
         extracted_frames = 0
 
-        # Read all frames first to ensure consistent processing
-        frames_to_process = []
-        while frame_count < total_frames and len(frames_to_process) < max_frames:
-            ret, frame = cap.read()
-            if not ret:
+        # Process frames in batches to manage memory
+        batch_size = 50  # Process 50 frames at a time
+
+        while extracted_frames < max_frames:
+            frames_batch = []
+
+            # Read batch of frames
+            for _ in range(batch_size):
+                if frame_count >= total_frames or extracted_frames >= max_frames:
+                    break
+
+                ret, frame = cap.read()
+                if not ret:
+                    break
+
+                if frame_count % frame_interval == 0:
+                    frames_batch.append(frame)
+                frame_count += 1
+
+            if not frames_batch:
                 break
 
-            if frame_count % frame_interval == 0:
-                frames_to_process.append(frame)
-            frame_count += 1
+            # Process batch of frames
+            for frame in frames_batch:
+                if extracted_frames >= max_frames:
+                    break
+
+                try:
+                    # Convert to RGB
+                    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+                    # Process with MediaPipe
+                    results = self.pose.process(frame_rgb)
+
+                    if results.pose_landmarks:
+                        landmarks = []
+                        for landmark in results.pose_landmarks.landmark:
+                            # Round to 4 decimal places for consistency
+                            landmarks.extend([
+                                round(landmark.x, 4),
+                                round(landmark.y, 4),
+                                round(landmark.z, 4)
+                            ])
+                        pose_sequence.append(landmarks)
+                        extracted_frames += 1
+
+                except Exception as e:
+                    # Skip problematic frames
+                    continue
+
+            # Free memory after processing batch
+            del frames_batch
 
         cap.release()
 
-        # Process frames deterministically
-        for frame in frames_to_process:
-            if extracted_frames >= max_frames:
-                break
-
-            # Convert to RGB
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-            # Process with MediaPipe
-            results = self.pose.process(frame_rgb)
-
-            if results.pose_landmarks:
-                landmarks = []
-                for landmark in results.pose_landmarks.landmark:
-                    # Round to 4 decimal places for consistency
-                    landmarks.extend([
-                        round(landmark.x, 4),
-                        round(landmark.y, 4),
-                        round(landmark.z, 4)
-                    ])
-                pose_sequence.append(landmarks)
-                extracted_frames += 1
-
         if len(pose_sequence) == 0:
             raise ValueError(f"No pose detected in video: {video_path}")
+
+        # Ensure minimum frames for processing
+        if len(pose_sequence) < 30:
+            raise ValueError(f"Video too short or poor quality. Only {len(pose_sequence)} valid frames found.")
 
         pose_array = np.array(pose_sequence, dtype=np.float32)
 
@@ -356,20 +383,20 @@ class USLInferencePipeline:
 
         print("USL Inference Pipeline ready!")
 
-    def extract_pose_from_video(self, video_path, max_frames=None):
+    def extract_pose_from_video(self, video_path, max_frames=150):
         """
-        Extract pose sequence from video
+        Extract pose sequence from video with optimized parameters
 
         Args:
             video_path: Path to video file
-            max_frames: Maximum frames to extract (None for all)
+            max_frames: Maximum frames to extract (optimized for performance)
 
         Returns:
             pose_array: (frames, 99) numpy array
         """
         # Re-initialize PoseExtractor for each call to ensure statelessness
         pose_extractor = PoseExtractor()
-        return pose_extractor.extract_pose_from_video(video_path, max_frames)
+        return pose_extractor.extract_pose_from_video(video_path, max_frames, target_fps=15)
 
     def recognize_signs(self, pose_sequence):
         """

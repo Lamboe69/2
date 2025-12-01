@@ -408,25 +408,50 @@ with tab1: # Patient-to-Clinician
                 st.session_state.processing = True
                 with st.spinner("Processing video... This may take a moment."):
                     try:
-                        # Process video
-                        result = pipeline.process_video(video_path)
+                        # Check file size (limit to 50MB for Render)
+                        file_size = len(uploaded_file.getbuffer())
+                        if file_size > 50 * 1024 * 1024:  # 50MB limit
+                            st.error("Video file too large. Please use a file smaller than 50MB.")
+                            st.session_state.processing = False
+                            return
 
-                        # Store result
-                        st.session_state.last_result = result
-                        st.session_state.analysis_history.append(result)
+                        # Process video with timeout and memory limits
+                        import signal
 
-                        # Update patient screening progress
-                        screening_slot = result['screening']['screening_slot']
-                        if screening_slot not in st.session_state.current_patient['completed_slots']:
-                            st.session_state.current_patient['completed_slots'].append(screening_slot)
+                        def timeout_handler(signum, frame):
+                            raise TimeoutError("Video processing timed out")
 
-                        # Check for danger signs
-                        danger_assessment = pipeline.detect_danger_signs(result)
-                        if danger_assessment['danger_detected']:
-                            st.session_state.current_patient['danger_signs'].extend(danger_assessment['danger_signs'])
+                        # Set 5-minute timeout for processing
+                        signal.signal(signal.SIGALRM, timeout_handler)
+                        signal.alarm(300)  # 5 minutes
 
-                        st.success("Analysis complete!")
+                        try:
+                            # Process video
+                            result = pipeline.process_video(video_path)
 
+                            # Store result
+                            st.session_state.last_result = result
+                            st.session_state.analysis_history.append(result)
+
+                            # Update patient screening progress
+                            screening_slot = result['screening']['screening_slot']
+                            if screening_slot not in st.session_state.current_patient['completed_slots']:
+                                st.session_state.current_patient['completed_slots'].append(screening_slot)
+
+                            # Check for danger signs
+                            danger_assessment = pipeline.detect_danger_signs(result)
+                            if danger_assessment['danger_detected']:
+                                st.session_state.current_patient['danger_signs'].extend(danger_assessment['danger_signs'])
+
+                            st.success("Analysis complete!")
+
+                        finally:
+                            signal.alarm(0)  # Cancel timeout
+
+                    except TimeoutError:
+                        st.error("Video processing timed out. Please try with a shorter video or smaller file.")
+                    except MemoryError:
+                        st.error("Not enough memory to process this video. Please try with a smaller file.")
                     except Exception as e:
                         st.error(f"Analysis failed: {e}")
                         import traceback
