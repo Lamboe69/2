@@ -391,9 +391,11 @@ def load_models():
             # Verify that model files exist before attempting to load
             if not all([sign_model_path.exists(), screening_model_path.exists(), vocab_path.exists()]):
                 st.warning("⚠️ Model files not found in `usl_models/`. Running in Demo Mode.")
+                st.info("💡 To use real models, ensure model files are in the `usl_models/` directory.")
                 return DemoInferencePipeline()
 
             print("✅ Model files found. Attempting to load real USL models...")
+            st.info("🔄 Loading USL models... Please wait.")
             pipeline = USLInferencePipeline(
                 sign_model_path=str(sign_model_path),
                 screening_model_path=str(screening_model_path),
@@ -401,15 +403,18 @@ def load_models():
                 device='cpu'
             )
             print("✅ Real USL models loaded successfully!")
+            st.success("✅ Real USL models loaded successfully!")
             return pipeline
         else:
             # If models were not available from the start, use the demo pipeline
             print("🔄 USLInferencePipeline not imported. Falling back to demo mode.")
+            st.warning("🔄 Running in Demo Mode - using simulated results.")
             return DemoInferencePipeline()
 
     except Exception as e:
         st.error(f"❌ An unexpected error occurred while loading models: {e}")
         print(f"❌ An unexpected error occurred: {e}. Falling back to demo mode.")
+        st.warning("⚠️ Model loading failed. Running in Demo Mode.")
         return DemoInferencePipeline()
 
 # Load models

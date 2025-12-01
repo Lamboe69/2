@@ -22,7 +22,22 @@ import json
 import mediapipe as mp
 from datetime import datetime
 import warnings
+import random
+import hashlib
 warnings.filterwarnings('ignore')
+
+# Set random seeds for reproducibility
+def set_random_seeds(seed=42):
+    """Set random seeds for reproducible results"""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+# Set seeds at module level
+set_random_seeds(42)
 
 # ============================================================================
 # SIGN RECOGNITION MODEL (Same as training)
@@ -167,7 +182,7 @@ class PoseExtractor:
         )
 
     def extract_pose_from_video(self, video_path, max_frames=None, target_fps=30):
-        """Extract pose sequence from video file"""
+        """Extract pose sequence from video file with deterministic processing"""
         cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
             raise ValueError(f"Could not open video: {video_path}")
@@ -176,34 +191,50 @@ class PoseExtractor:
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
         if max_frames is None:
-            max_frames = total_frames
+            max_frames = min(total_frames, 500)  # Cap at 500 frames for consistency
 
+        # Use fixed frame sampling for consistency
         frame_interval = max(1, int(fps / target_fps)) if fps > target_fps else 1
 
         pose_sequence = []
         frame_count = 0
         extracted_frames = 0
 
-        while extracted_frames < max_frames and frame_count < total_frames:
+        # Read all frames first to ensure consistent processing
+        frames_to_process = []
+        while frame_count < total_frames and len(frames_to_process) < max_frames:
             ret, frame = cap.read()
             if not ret:
                 break
 
             if frame_count % frame_interval == 0:
-                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-                results = self.pose.process(frame_rgb)
-
-                if results.pose_landmarks:
-                    landmarks = []
-                    for landmark in results.pose_landmarks.landmark:
-                        landmarks.extend([landmark.x, landmark.y, landmark.z])
-                    pose_sequence.append(landmarks)
-                    extracted_frames += 1
-
+                frames_to_process.append(frame)
             frame_count += 1
 
         cap.release()
+
+        # Process frames deterministically
+        for frame in frames_to_process:
+            if extracted_frames >= max_frames:
+                break
+
+            # Convert to RGB
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+            # Process with MediaPipe
+            results = self.pose.process(frame_rgb)
+
+            if results.pose_landmarks:
+                landmarks = []
+                for landmark in results.pose_landmarks.landmark:
+                    # Round to 4 decimal places for consistency
+                    landmarks.extend([
+                        round(landmark.x, 4),
+                        round(landmark.y, 4),
+                        round(landmark.z, 4)
+                    ])
+                pose_sequence.append(landmarks)
+                extracted_frames += 1
 
         if len(pose_sequence) == 0:
             raise ValueError(f"No pose detected in video: {video_path}")
