@@ -577,12 +577,14 @@ class USLInferencePipeline:
         signs = result['signs']['sign_names']
         screening = result['screening']
 
+        # Only detect danger signs based on actual critical conditions
+        # Danger signs should ONLY appear when specific critical symptoms are detected
         danger_indicators = {
-            'emergency': ['emergency' in signs],
-            'severe_pain': ['severe' in signs and 'pain' in signs],
-            'breathing_difficulty': ['breathing_difficulty' in signs],
-            'severe_dehydration': ['severe' in signs and 'diarrhea' in signs],
-            'hemoptysis': [screening['screening_slot'] == 'cough_hemoptysis' and screening['response'] == 'yes']
+            'emergency': 'emergency' in signs and len(signs) > 0,
+            'severe_pain': 'severe' in signs and 'pain' in signs and len(signs) > 0,
+            'breathing_difficulty': 'breathing_difficulty' in signs and len(signs) > 0,
+            'severe_dehydration': 'severe' in signs and 'diarrhea' in signs and len(signs) > 0,
+            'hemoptysis': screening['screening_slot'] == 'cough_hemoptysis' and screening['response'] == 'yes' and screening['confidence'] > 0.7
         }
 
         danger_detected = any(danger_indicators.values())
