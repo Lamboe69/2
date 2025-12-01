@@ -33,9 +33,9 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
     from usl_inference import USLInferencePipeline
     MODELS_AVAILABLE = True
-    print("✅ USL inference module loaded successfully")
+    print("SUCCESS: USL inference module loaded successfully")
 except ImportError as e:
-    print(f"❌ USL inference module not available: {e}")
+    print(f"ERROR: USL inference module not available: {e}")
     MODELS_AVAILABLE = False
 
 # ============================================================================
@@ -301,16 +301,16 @@ def load_models():
             st.error("- sign_vocabulary.json")
             st.stop()
 
-        print("✅ Model files found. Attempting to load real USL models...")
-        st.info("🔄 Loading USL models... Please wait.")
+        print("SUCCESS: Model files found. Attempting to load real USL models...")
+        st.info("Loading USL models... Please wait.")
         pipeline = USLInferencePipeline(
             sign_model_path=str(sign_model_path),
             screening_model_path=str(screening_model_path),
             sign_vocab_path=str(vocab_path),
             device='cpu'
         )
-        print("✅ Real USL models loaded successfully!")
-        st.success("✅ Real USL models loaded successfully!")
+        print("SUCCESS: Real USL models loaded successfully!")
+        st.success("Real USL models loaded successfully!")
         return pipeline
 
     except Exception as e:
