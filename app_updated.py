@@ -35,103 +35,8 @@ try:
     MODELS_AVAILABLE = True
     print("✅ USL inference module loaded successfully")
 except ImportError as e:
-    print(f"⚠️ USL inference module not available: {e}")
-    print("🔄 Using demo mode instead")
+    print(f"❌ USL inference module not available: {e}")
     MODELS_AVAILABLE = False
-
-    # --- Demo Fallback Pipeline ---
-    # Define demo pipeline here to ensure it's always available
-    class DemoInferencePipeline:
-        def __init__(self):
-            self.sign_vocab = {
-                0: 'fever', 1: 'cough', 2: 'pain', 3: 'diarrhea', 4: 'rash',
-                5: 'weakness', 6: 'headache', 7: 'vomiting', 8: 'chest'
-            }
-            self.screening_slots = [
-                'fever', 'cough_hemoptysis', 'diarrhea_dehydration',
-                'rash', 'exposure', 'travel', 'pregnancy'
-            ]
-            self.device = 'cpu'
-            self.num_signs = len(self.sign_vocab)
-
-        def process_video(self, video_path):
-            import time
-            import hashlib
-            time.sleep(1.5)  # Simulate processing delay
-
-            # Generate consistent results based on video filename
-            # This ensures same video always gives same results
-            video_hash = hashlib.md5(video_path.encode()).hexdigest()
-            hash_int = int(video_hash[:8], 16)  # Use first 8 chars as seed
-
-            # Create deterministic random generator
-            import random
-            random.seed(hash_int)
-
-            # Generate consistent demo results
-            num_signs = random.randint(2, 5)
-            signs = random.sample(list(self.sign_vocab.values()), num_signs)
-
-            # Consistent screening slot based on hash
-            slot_index = hash_int % len(self.screening_slots)
-            screening_slot = self.screening_slots[slot_index]
-
-            # Consistent response based on hash
-            response_options = ['yes', 'no', 'unknown']
-            response_index = (hash_int // len(self.screening_slots)) % len(response_options)
-            response = response_options[response_index]
-
-            # Consistent frame count
-            frame_base = 200 + (hash_int % 300)  # 200-500 range
-            pose_frames = frame_base
-
-            # Consistent confidence scores
-            sign_confidence = 0.75 + (hash_int % 20) / 100  # 0.75-0.94
-            screening_confidence = 0.80 + (hash_int % 18) / 100  # 0.80-0.97
-
-            return {
-                'video_path': video_path,
-                'pose_frames': pose_frames,
-                'signs': {
-                    'sign_names': signs,
-                    'num_signs': len(signs),
-                    'confidence': round(sign_confidence, 2)
-                },
-                'screening': {
-                    'screening_slot': screening_slot,
-                    'response': response,
-                    'confidence': round(screening_confidence, 2),
-                    'slot_logits': [[0.1, 0.2, 0.7]],
-                    'response_logits': [[0.3, 0.6, 0.1]]
-                },
-                'timestamp': '2025-11-29T17:08:29',
-                'model_version': 'DEMO-v1.0'
-            }
-
-        def detect_danger_signs(self, result):
-            signs = result['signs']['sign_names']
-            danger_indicators = {
-                'emergency': ['emergency' in signs],
-                'severe_pain': ['severe' in signs and 'pain' in signs],
-                'breathing_difficulty': ['breathing_difficulty' in signs]
-            }
-            danger_detected = any(danger_indicators.values())
-            return {
-                'danger_detected': danger_detected,
-                'danger_signs': [sign for sign, detected in danger_indicators.items() if detected],
-                'triage_level': 'emergency' if danger_detected else 'routine',
-                'recommendations': ["Immediate medical attention required" if danger_detected else "Continue routine screening"]
-            }
-
-        def implement_skip_logic(self, completed_slots):
-            all_slots = self.screening_slots
-            for slot in all_slots:
-                if slot not in completed_slots:
-                    return slot
-            return None
-
-    # Make demo pipeline available globally
-    USLInferencePipeline = DemoInferencePipeline
 
 # ============================================================================
 # PAGE CONFIGURATION & STYLING
@@ -362,60 +267,57 @@ if 'last_result' not in st.session_state:
 # MAIN HEADER
 # ============================================================================
 
-# Check if we're in demo mode
-is_demo_mode = isinstance(st.session_state.pipeline, DemoInferencePipeline) if st.session_state.pipeline else False
-
-st.markdown(f"""
+st.markdown("""
 <div class="main-header">
     <h1 class="main-title">🇺🇬 USL Clinical Screening System</h1>
     <p class="main-subtitle">Graph-Reasoned Large Vision Models for Ugandan Sign Language Translation</p>
     <p style="font-size: 1rem; margin-top: 1rem;">
         🏥 Built for Ugandan Healthcare • 🤟 Powered by Sign Language • 📊 WHO Guidelines Compliant
     </p>
-    {"<p style='color: #FFD700; font-weight: bold; margin-top: 0.5rem;'>🎯 DEMO MODE - Upload videos to see AI-powered analysis!</p>" if is_demo_mode else ""}
 </div>
 """, unsafe_allow_html=True)
 
 @st.cache_resource
 def load_models():
-    """Load trained USL models or fallback to demo mode"""
+    """Load trained USL models - NO DEMO MODE"""
     try:
         # Check if the real models were imported successfully
-        if MODELS_AVAILABLE:
-            base_dir = Path(__file__).resolve().parent
-            models_dir = base_dir / "usl_models"
-            sign_model_path = models_dir / "sign_recognition_model.pth"
-            screening_model_path = models_dir / "usl_screening_model.pth"
-            vocab_path = models_dir / "sign_vocabulary.json"
+        if not MODELS_AVAILABLE:
+            st.error("❌ USL inference module not available. Please check the usl_inference.py file.")
+            st.stop()
 
-            # Verify that model files exist before attempting to load
-            if not all([sign_model_path.exists(), screening_model_path.exists(), vocab_path.exists()]):
-                st.warning("⚠️ Model files not found in `usl_models/`. Running in Demo Mode.")
-                st.info("💡 To use real models, ensure model files are in the `usl_models/` directory.")
-                return DemoInferencePipeline()
+        base_dir = Path(__file__).resolve().parent
+        models_dir = base_dir / "usl_models"
+        sign_model_path = models_dir / "sign_recognition_model.pth"
+        screening_model_path = models_dir / "usl_screening_model.pth"
+        vocab_path = models_dir / "sign_vocabulary.json"
 
-            print("✅ Model files found. Attempting to load real USL models...")
-            st.info("🔄 Loading USL models... Please wait.")
-            pipeline = USLInferencePipeline(
-                sign_model_path=str(sign_model_path),
-                screening_model_path=str(screening_model_path),
-                sign_vocab_path=str(vocab_path),
-                device='cpu'
-            )
-            print("✅ Real USL models loaded successfully!")
-            st.success("✅ Real USL models loaded successfully!")
-            return pipeline
-        else:
-            # If models were not available from the start, use the demo pipeline
-            print("🔄 USLInferencePipeline not imported. Falling back to demo mode.")
-            st.warning("🔄 Running in Demo Mode - using simulated results.")
-            return DemoInferencePipeline()
+        # Verify that model files exist before attempting to load
+        if not all([sign_model_path.exists(), screening_model_path.exists(), vocab_path.exists()]):
+            st.error("❌ Model files not found in `usl_models/` directory.")
+            st.error("Required files:")
+            st.error("- sign_recognition_model.pth")
+            st.error("- usl_screening_model.pth")
+            st.error("- sign_vocabulary.json")
+            st.stop()
+
+        print("✅ Model files found. Attempting to load real USL models...")
+        st.info("🔄 Loading USL models... Please wait.")
+        pipeline = USLInferencePipeline(
+            sign_model_path=str(sign_model_path),
+            screening_model_path=str(screening_model_path),
+            sign_vocab_path=str(vocab_path),
+            device='cpu'
+        )
+        print("✅ Real USL models loaded successfully!")
+        st.success("✅ Real USL models loaded successfully!")
+        return pipeline
 
     except Exception as e:
-        st.error(f"❌ An unexpected error occurred while loading models: {e}")
-        print(f"❌ An unexpected error occurred: {e}. Falling back to demo mode.")
-        st.warning("⚠️ Model loading failed. Running in Demo Mode.")
-        return DemoInferencePipeline()
+        st.error(f"❌ Failed to load USL models: {e}")
+        print(f"❌ Model loading error: {e}")
+        st.error("Please ensure all model files are present and valid.")
+        st.stop()
 
 # Load models
 if st.session_state.pipeline is None:
