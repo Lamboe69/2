@@ -312,7 +312,7 @@ class USLInferencePipeline:
             sign_vocab_path: Path to sign vocabulary JSON
             device: 'auto', 'cpu', or 'cuda'
         """
-        print("🚀 Initializing USL Inference Pipeline...")
+        print("Initializing USL Inference Pipeline...")
 
         # Set device
         if device == 'auto':
@@ -354,7 +354,7 @@ class USLInferencePipeline:
         self.sign_model.eval()
         self.screening_model.eval()
 
-        print("✅ USL Inference Pipeline ready!")
+        print("USL Inference Pipeline ready!")
 
     def extract_pose_from_video(self, video_path, max_frames=None):
         """
@@ -460,7 +460,7 @@ class USLInferencePipeline:
         Returns:
             dict with complete analysis results
         """
-        print(f"🎥 Processing video: {video_path}")
+        print(f"Processing video: {video_path}")
 
         # Extract pose
         pose_sequence = self.extract_pose_from_video(video_path)
@@ -481,7 +481,7 @@ class USLInferencePipeline:
             'model_version': 'USL-v1.0'
         }
 
-        print("✅ Video processing complete!")
+        print("Video processing complete!")
         return result
 
     def generate_fhir_bundle(self, result, patient_id="PATIENT-001"):
@@ -630,7 +630,7 @@ def create_disease_signs_vocab():
 # ============================================================================
 
 if __name__ == "__main__":
-    print("🧪 USL Inference Pipeline Demo")
+    print("USL Inference Pipeline Demo")
     print("=" * 50)
 
     # Example usage
@@ -641,10 +641,10 @@ if __name__ == "__main__":
             sign_vocab_path='./usl_models/sign_vocabulary.json'
         )
 
-        print("✅ Pipeline initialized successfully!")
+        print("Pipeline initialized successfully!")
 
         # Demo with synthetic pose data
-        print("\n🔬 Testing with synthetic pose data...")
+        print("\nTesting with synthetic pose data...")
 
         # Create synthetic pose sequence
         pose_sequence = np.random.randn(300, 33, 3).astype(np.float32) * 0.1
@@ -657,8 +657,8 @@ if __name__ == "__main__":
         screening_result = pipeline.classify_screening(pose_sequence)
         print(f"Screening result: {screening_result}")
 
-        print("\n✅ All tests passed!")
+        print("\nAll tests passed!")
 
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"Error: {e}")
         print("Make sure model files exist in ./usl_models/")

@@ -283,7 +283,7 @@ def load_models():
     try:
         # Check if the real models were imported successfully
         if not MODELS_AVAILABLE:
-            st.error("❌ USL inference module not available. Please check the usl_inference.py file.")
+            st.error("USL inference module not available. Please check the usl_inference.py file.")
             st.stop()
 
         base_dir = Path(__file__).resolve().parent
@@ -294,7 +294,7 @@ def load_models():
 
         # Verify that model files exist before attempting to load
         if not all([sign_model_path.exists(), screening_model_path.exists(), vocab_path.exists()]):
-            st.error("❌ Model files not found in `usl_models/` directory.")
+            st.error("Model files not found in `usl_models/` directory.")
             st.error("Required files:")
             st.error("- sign_recognition_model.pth")
             st.error("- usl_screening_model.pth")
@@ -314,20 +314,20 @@ def load_models():
         return pipeline
 
     except Exception as e:
-        st.error(f"❌ Failed to load USL models: {e}")
-        print(f"❌ Model loading error: {e}")
+        st.error(f"Failed to load USL models: {e}")
+        print(f"Model loading error: {e}")
         st.error("Please ensure all model files are present and valid.")
         st.stop()
 
 # Load models
 if st.session_state.pipeline is None:
-    with st.spinner("🔄 Loading USL models..."):
+    with st.spinner("Loading USL models..."):
         st.session_state.pipeline = load_models()
 
 pipeline = st.session_state.pipeline
 
 if pipeline is None:
-    st.error("❌ Failed to load models. Please check the model files.")
+    st.error("Failed to load models. Please check the model files.")
     st.stop()
 
 # ============================================================================
@@ -370,7 +370,7 @@ with st.sidebar:
         for sign in danger_signs:
             st.write(f"• {str(sign).replace('_', ' ').title()}")
     else:
-        st.success("✅ No danger signs detected")
+        st.success("No danger signs detected")
 
 # ============================================================================
 # MAIN CONTENT
@@ -401,12 +401,12 @@ with tab1: # Patient-to-Clinician
             with open(video_path, "wb") as f:
                 f.write(uploaded_file.getbuffer())
 
-            st.success(f"✅ Video uploaded: {uploaded_file.name}")
+            st.success(f"Video uploaded: {uploaded_file.name}")
 
             # Analysis button
-            if st.button("🔍 Analyze Video", key="analyze_video", type="primary", disabled=st.session_state.processing):
+            if st.button("Analyze Video", key="analyze_video", type="primary", disabled=st.session_state.processing):
                 st.session_state.processing = True
-                with st.spinner("🎥 Processing video... This may take a moment."):
+                with st.spinner("Processing video... This may take a moment."):
                     try:
                         # Process video
                         result = pipeline.process_video(video_path)
@@ -425,10 +425,10 @@ with tab1: # Patient-to-Clinician
                         if danger_assessment['danger_detected']:
                             st.session_state.current_patient['danger_signs'].extend(danger_assessment['danger_signs'])
 
-                        st.success("✅ Analysis complete!")
+                        st.success("Analysis complete!")
 
                     except Exception as e:
-                        st.error(f"❌ Analysis failed: {e}")
+                        st.error(f"Analysis failed: {e}")
                         import traceback
                         st.error(traceback.format_exc())
                     finally:
@@ -571,7 +571,7 @@ with tab3:
 
         progress_data = []
         for slot in all_slots:
-            status = "✅ Completed" if slot in completed else "⏳ Pending"
+            status = "Completed" if slot in completed else "Pending"
             progress_data.append({
                 'Screening Question': slot.replace('_', ' ').title(),
                 'Status': status,
@@ -824,11 +824,11 @@ st.divider()
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
-    st.markdown("**System**: ✅ USL Clinical Screening")
+    st.markdown("**System**: USL Clinical Screening")
 with col2:
-    st.markdown("**Models**: ✅ Loaded & Ready")
+    st.markdown("**Models**: Loaded & Ready")
 with col3:
-    st.markdown("**Training**: ✅ Real Dataset Models")
+    st.markdown("**Training**: Real Dataset Models")
 with col4:
     st.markdown(f"**Last Updated**: {datetime.now().strftime('%H:%M:%S')}")
 
