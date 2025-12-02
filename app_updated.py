@@ -413,7 +413,7 @@ with tab1: # Patient-to-Clinician
                         if file_size > 50 * 1024 * 1024:  # 50MB limit
                             st.error("Video file too large. Please use a file smaller than 50MB.")
                             st.session_state.processing = False
-                            return
+                            st.stop()
 
                         # Process video with timeout and memory limits
                         import signal
