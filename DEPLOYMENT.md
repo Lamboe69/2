@@ -99,16 +99,65 @@ services:
 - **Weekly reviews**: Analyze performance metrics
 - **Monthly optimization**: Review and implement further improvements
 
-### Support
+## 🌐 ALTERNATIVE DEPLOYMENT PLATFORMS
 
-If memory issues persist:
-1. Check video file sizes (limit: 50MB)
-2. Monitor concurrent users
-3. Review processing logs
-4. Consider further model optimizations
+### Railway (Current Trial)
+- **Status**: 13 days trial remaining
+- **Free tier**: 512MB RAM, good for ML apps
+- **Recommendation**: Use if you want to pay $5/month after trial
+
+### Replit (Recommended Alternative)
+- **Free tier**: 2GB RAM, 10GB storage (excellent for ML!)
+- **Setup**: Easy web deployment from IDE
+- **ML-ready**: Pre-installed libraries, great for your use case
+
+### Other Options
+- **Fly.io**: 1GB free RAM, global performance
+- **Google Cloud Run**: 2M requests/month free
+- **Cyclic.sh**: 1GB RAM, MongoDB included
 
 ---
 
-**Status**: ✅ Memory optimizations implemented and deployed
-**Expected Result**: No more memory limit exceeded errors
-**Monitoring**: Real-time memory usage available in sidebar
+## 📋 REPLIT DEPLOYMENT GUIDE
+
+### Step 1: Create Replit Account
+1. Go to https://replit.com
+2. Sign up with GitHub account
+3. Click "Create Repl"
+
+### Step 2: Import Your Project
+1. Choose "Import from GitHub"
+2. Connect your repository: `https://github.com/Lamboe69/2`
+3. Select Python template
+
+### Step 3: Configure for ML
+1. **Update replit.nix** (if needed):
+```nix
+{ pkgs }: {
+  deps = [
+    pkgs.python39
+    pkgs.python39Packages.pip
+    pkgs.python39Packages.virtualenv
+  ];
+}
+```
+
+2. **Install dependencies**:
+```bash
+pip install -r requirements.txt
+```
+
+### Step 4: Configure Streamlit
+1. **Create .replit file**:
+```bash
+run = "streamlit run app_updated.py --server.port $PORT --server.headless true"
+```
+
+2. **Or create replit-run.sh**:
+```bash
+#!/bin/bash
+streamlit run app_updated.py --server.port $PORT --server.headless true --server.address 0.0.0.0
+```
+
+### Step 5: Deploy
+1. Click "Run" button in Replit

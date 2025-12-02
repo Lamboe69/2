@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["python39", "gcc", "gfortran", "blas", "lapack"]
+
+[phases.install]
+cmds = [
+    "pip install --no-cache-dir -r requirements.txt",
+    "pip cache purge"
+]
+
+[start]
+cmd = "streamlit run app_updated.py --server.port $PORT --server.headless true --server.address 0.0.0.0"

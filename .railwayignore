@@ -1,4 +1,4 @@
-# Exclude unnecessary files to speed up build
+# Aggressive exclusions to reduce image size
 kaggle_training_script.py
 kaggle_dataset_training.py
 test_import.py
@@ -12,7 +12,41 @@ TRAINING_COMPLETE.md
 INDEX.md
 README_MODELS.md
 render.yaml
+.gitignore
+*.md
+!README.md
+
+# Documentation files
 DEPLOYMENT.md
+QUICK_START.md
+
+# Test and development files
+test_*.py
+*test*.py
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
 .gitignore
 
 # Keep only essential files
@@ -22,3 +56,5 @@ DEPLOYMENT.md
 !requirements.txt
 !runtime.txt
 !Procfile
+!railway.json
+!.railwayignore
