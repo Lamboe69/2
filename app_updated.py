@@ -321,8 +321,12 @@ st.markdown("""
 
 @st.cache_resource
 def load_models():
-    """Load trained USL models - NO DEMO MODE"""
+    """Load trained USL models with memory monitoring"""
     try:
+        # Check memory before loading
+        initial_memory = get_memory_usage()
+        print(f"Initial memory usage: {initial_memory:.1f} MB")
+
         # Check if the real models were imported successfully
         if not MODELS_AVAILABLE:
             st.error("USL inference module not available. Please check the usl_inference.py file.")
@@ -344,32 +348,49 @@ def load_models():
             st.stop()
 
         print("SUCCESS: Model files found. Attempting to load real USL models...")
-        st.info("Loading USL models... Please wait.")
+        print(f"Sign model size: {sign_model_path.stat().st_size / 1024 / 1024:.1f} MB")
+        print(f"Screening model size: {screening_model_path.stat().st_size / 1024 / 1024:.1f} MB")
+
+        # Load pipeline with progress indication
         pipeline = USLInferencePipeline(
             sign_model_path=str(sign_model_path),
             screening_model_path=str(screening_model_path),
             sign_vocab_path=str(vocab_path),
             device='cpu'
         )
+
+        final_memory = get_memory_usage()
+        print(f"Final memory usage after model loading: {final_memory:.1f} MB")
+        print(f"Memory increase: {final_memory - initial_memory:.1f} MB")
         print("SUCCESS: Real USL models loaded successfully!")
         st.success("Real USL models loaded successfully!")
         return pipeline
 
+    except MemoryError as e:
+        st.error("🚫 **Not enough memory to load models!**")
+        st.error("The models require more memory than the free tier provides.")
+        st.error("Consider upgrading to a paid plan or using smaller models.")
+        print(f"Memory error during model loading: {e}")
+        st.stop()
     except Exception as e:
         st.error(f"Failed to load USL models: {e}")
         print(f"Model loading error: {e}")
-        st.error("Please ensure all model files are present and valid.")
+        st.error("Please check the model files and try again.")
         st.stop()
 
-# Load models
+# Load models with better error handling
 if st.session_state.pipeline is None:
-    with st.spinner("Loading USL models..."):
-        st.session_state.pipeline = load_models()
+    with st.spinner("Loading USL models... This may take 1-2 minutes."):
+        try:
+            st.session_state.pipeline = load_models()
+        except Exception as e:
+            st.error(f"Model loading failed: {e}")
+            st.stop()
 
 pipeline = st.session_state.pipeline
 
 if pipeline is None:
-    st.error("Failed to load models. Please check the model files.")
+    st.error("Failed to load models. Please refresh the page and try again.")
     st.stop()
 
 # ============================================================================
