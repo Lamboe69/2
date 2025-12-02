@@ -27,22 +27,28 @@ The USL Screening System was exceeding Render's memory limits due to:
 - **PyTorch cache clearing**: GPU cache clearing (when available)
 - **Memory warnings**: Alerts when usage exceeds 600MB/800MB thresholds
 
-#### 4. Configuration Updates
+#### 4. Demo Mode Fallback
+- **Automatic fallback**: If ML models can't load due to memory, switches to lightweight demo mode
+- **Demo mode features**: Mock video processing, simulated results, full UI functionality
+- **Memory usage**: ~10MB vs 128MB for real models
+- **Perfect for testing**: Complete workflow without heavy ML models
+
+#### 5. Configuration Updates
 ```yaml
-# render.yaml
+# render.yaml - FREE TIER COMPATIBLE
 services:
   - type: web
     name: usl-clinical-screening
-    plan: starter  # Upgraded from free tier
-    # ... other settings
+    # Using free tier with intelligent fallbacks
+    # plan: starter  # Uncomment for 1GB RAM upgrade
 ```
 
 ### Memory Usage Breakdown (Estimated)
-- **Model loading**: ~128MB (sign + screening models)
+- **Model loading**: ~128MB (sign + screening models) - **FALLBACK TO DEMO MODE IF TOO LARGE**
+- **Demo mode**: ~10MB (lightweight mock pipeline)
 - **Video processing**: ~200-400MB peak (varies by video length)
 - **Session storage**: ~50MB (analysis history, results)
-- **Total baseline**: ~178MB
-- **With optimizations**: ~150-350MB during processing
+- **Total with demo mode**: ~60-250MB during processing
 
 ### Deployment Instructions
 
