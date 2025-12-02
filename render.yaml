@@ -14,5 +14,7 @@ services:
     autoDeploy: false
     # The health check path for a Streamlit app is /_stcore/health
     healthCheckPath: /_stcore/health
+    # Memory optimization for ML model loading and video processing
+    plan: starter # Upgrade from free tier (512MB) to starter (1GB RAM, 2GB disk)
     # Note: Free instances do not support persistent disks.
     # This 'disk' section will only work on paid plans.

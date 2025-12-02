@@ -26,9 +26,51 @@ import time
 import base64
 from pathlib import Path
 from typing import Dict, List, Any
+import gc
+import psutil
 
 # Add current directory to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+# ============================================================================
+# MEMORY MONITORING UTILITIES
+# ============================================================================
+
+def get_memory_usage():
+    """Get current memory usage information"""
+    try:
+        process = psutil.Process(os.getpid())
+        memory_info = process.memory_info()
+        memory_mb = memory_info.rss / 1024 / 1024  # Convert to MB
+        return memory_mb
+    except Exception as e:
+        print(f"Memory monitoring error: {e}")
+        return 0
+
+def force_memory_cleanup():
+    """Force garbage collection and memory cleanup"""
+    try:
+        # Force garbage collection
+        gc.collect()
+
+        # Clear any cached tensors if using PyTorch
+        if 'torch' in sys.modules:
+            import torch
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
+        print(f"Memory cleanup completed. Current usage: {get_memory_usage():.1f} MB")
+    except Exception as e:
+        print(f"Memory cleanup error: {e}")
+
+def check_memory_limits(max_memory_mb=900):
+    """Check if memory usage is approaching limits"""
+    current_memory = get_memory_usage()
+    if current_memory > max_memory_mb:
+        print(f"WARNING: High memory usage detected: {current_memory:.1f} MB")
+        force_memory_cleanup()
+        return True
+    return False
 
 try:
     from usl_inference import USLInferencePipeline
@@ -363,6 +405,16 @@ with st.sidebar:
 
     st.metric("Completed Analyses", len(st.session_state.analysis_history))
 
+    # Memory usage monitoring
+    current_memory = get_memory_usage()
+    memory_color = "normal"
+    if current_memory > 800:
+        memory_color = "inverse"  # Red warning
+    elif current_memory > 600:
+        memory_color = "normal"  # Yellow warning
+
+    st.metric("Memory Usage", f"{current_memory:.1f} MB", help="Current RAM usage")
+
     st.header("⚠️ Danger Signs Monitor")
     danger_signs = st.session_state.current_patient.get('danger_signs', [])
     if danger_signs:
@@ -447,6 +499,8 @@ with tab1: # Patient-to-Clinician
 
                         finally:
                             signal.alarm(0)  # Cancel timeout
+                            # Force memory cleanup after processing
+                            force_memory_cleanup()
 
                     except TimeoutError:
                         st.error("Video processing timed out. Please try with a shorter video or smaller file.")

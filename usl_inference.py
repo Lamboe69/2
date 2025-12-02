@@ -181,7 +181,7 @@ class PoseExtractor:
             min_tracking_confidence=0.5
         )
 
-    def extract_pose_from_video(self, video_path, max_frames=150, target_fps=15):
+    def extract_pose_from_video(self, video_path, max_frames=100, target_fps=10):
         """Extract pose sequence from video file with memory and performance optimizations"""
         cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
@@ -191,11 +191,11 @@ class PoseExtractor:
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         duration = total_frames / fps if fps > 0 else 0
 
-        # Limit processing for performance - shorter videos, fewer frames
-        if duration > 30:  # Videos longer than 30 seconds
-            max_frames = min(max_frames, 100)  # Reduce frames for long videos
-        elif duration > 60:  # Videos longer than 1 minute
-            max_frames = min(max_frames, 75)  # Further reduce
+        # Aggressive memory optimization - limit frames more strictly
+        if duration > 20:  # Videos longer than 20 seconds
+            max_frames = min(max_frames, 60)  # Reduce frames significantly
+        elif duration > 45:  # Videos longer than 45 seconds
+            max_frames = min(max_frames, 40)  # Further reduce
 
         # Use lower frame rate for processing efficiency
         frame_interval = max(1, int(fps / target_fps)) if fps > target_fps else 1
@@ -383,7 +383,7 @@ class USLInferencePipeline:
 
         print("USL Inference Pipeline ready!")
 
-    def extract_pose_from_video(self, video_path, max_frames=150):
+    def extract_pose_from_video(self, video_path, max_frames=100):
         """
         Extract pose sequence from video with optimized parameters
 
@@ -396,7 +396,7 @@ class USLInferencePipeline:
         """
         # Re-initialize PoseExtractor for each call to ensure statelessness
         pose_extractor = PoseExtractor()
-        return pose_extractor.extract_pose_from_video(video_path, max_frames, target_fps=15)
+        return pose_extractor.extract_pose_from_video(video_path, max_frames, target_fps=10)
 
     def recognize_signs(self, pose_sequence):
         """
