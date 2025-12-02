@@ -1,0 +1,24 @@
+# Exclude unnecessary files to speed up build
+kaggle_training_script.py
+kaggle_dataset_training.py
+test_import.py
+test_model.py
+test_models.py
+test_on_dataset.py
+usl_inference_real.py
+usl_training_pipeline.py
+training_summary.md
+TRAINING_COMPLETE.md
+INDEX.md
+README_MODELS.md
+render.yaml
+DEPLOYMENT.md
+.gitignore
+
+# Keep only essential files
+!app_updated.py
+!usl_inference.py
+!usl_models/
+!requirements.txt
+!runtime.txt
+!Procfile
