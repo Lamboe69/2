@@ -181,8 +181,8 @@ class PoseExtractor:
             min_tracking_confidence=0.5
         )
 
-    def extract_pose_from_video(self, video_path, max_frames=100, target_fps=10):
-        """Extract pose sequence from video file with memory and performance optimizations"""
+    def extract_pose_from_video(self, video_path, max_frames=60, target_fps=8):
+        """Extract pose sequence from video file with aggressive memory optimization for free tier"""
         cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
             raise ValueError(f"Could not open video: {video_path}")
@@ -191,13 +191,15 @@ class PoseExtractor:
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         duration = total_frames / fps if fps > 0 else 0
 
-        # Aggressive memory optimization - limit frames more strictly
-        if duration > 20:  # Videos longer than 20 seconds
-            max_frames = min(max_frames, 60)  # Reduce frames significantly
-        elif duration > 45:  # Videos longer than 45 seconds
-            max_frames = min(max_frames, 40)  # Further reduce
+        # Very aggressive memory optimization for 512MB free tier
+        if duration > 15:  # Videos longer than 15 seconds
+            max_frames = min(max_frames, 40)  # Reduce frames drastically
+        elif duration > 30:  # Videos longer than 30 seconds
+            max_frames = min(max_frames, 30)  # Further reduce
+        elif duration > 60:  # Videos longer than 1 minute
+            max_frames = min(max_frames, 25)  # Maximum reduction
 
-        # Use lower frame rate for processing efficiency
+        # Use very low frame rate for processing efficiency
         frame_interval = max(1, int(fps / target_fps)) if fps > target_fps else 1
 
         pose_sequence = []
@@ -383,20 +385,20 @@ class USLInferencePipeline:
 
         print("USL Inference Pipeline ready!")
 
-    def extract_pose_from_video(self, video_path, max_frames=100):
+    def extract_pose_from_video(self, video_path, max_frames=60):
         """
-        Extract pose sequence from video with optimized parameters
+        Extract pose sequence from video with aggressive memory optimization
 
         Args:
             video_path: Path to video file
-            max_frames: Maximum frames to extract (optimized for performance)
+            max_frames: Maximum frames to extract (optimized for 512MB free tier)
 
         Returns:
             pose_array: (frames, 99) numpy array
         """
         # Re-initialize PoseExtractor for each call to ensure statelessness
         pose_extractor = PoseExtractor()
-        return pose_extractor.extract_pose_from_video(video_path, max_frames, target_fps=10)
+        return pose_extractor.extract_pose_from_video(video_path, max_frames, target_fps=8)
 
     def recognize_signs(self, pose_sequence):
         """

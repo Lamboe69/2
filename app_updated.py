@@ -63,8 +63,8 @@ def force_memory_cleanup():
     except Exception as e:
         print(f"Memory cleanup error: {e}")
 
-def check_memory_limits(max_memory_mb=900):
-    """Check if memory usage is approaching limits"""
+def check_memory_limits(max_memory_mb=400):
+    """Check if memory usage is approaching limits for free tier (512MB)"""
     current_memory = get_memory_usage()
     if current_memory > max_memory_mb:
         print(f"WARNING: High memory usage detected: {current_memory:.1f} MB")
@@ -405,15 +405,25 @@ with st.sidebar:
 
     st.metric("Completed Analyses", len(st.session_state.analysis_history))
 
-    # Memory usage monitoring
+    # Memory usage monitoring with warnings for free tier
     current_memory = get_memory_usage()
+    memory_status = "✅ Normal"
     memory_color = "normal"
-    if current_memory > 800:
-        memory_color = "inverse"  # Red warning
-    elif current_memory > 600:
-        memory_color = "normal"  # Yellow warning
 
-    st.metric("Memory Usage", f"{current_memory:.1f} MB", help="Current RAM usage")
+    if current_memory > 450:  # Critical for 512MB free tier
+        memory_status = "🚨 CRITICAL"
+        memory_color = "inverse"
+        st.error("⚠️ **Memory usage is critically high!** Please wait before processing more videos.")
+    elif current_memory > 350:  # Warning zone
+        memory_status = "⚠️ High"
+        memory_color = "normal"
+        st.warning("⚠️ **Memory usage is high.** Video processing may be limited.")
+    elif current_memory > 250:
+        memory_status = "⚡ Moderate"
+    else:
+        memory_status = "✅ Normal"
+
+    st.metric("Memory Usage", f"{current_memory:.1f} MB", delta=memory_status, help="Free tier limit: 512MB")
 
     st.header("⚠️ Danger Signs Monitor")
     danger_signs = st.session_state.current_patient.get('danger_signs', [])
@@ -455,8 +465,16 @@ with tab1: # Patient-to-Clinician
 
             st.success(f"Video uploaded: {uploaded_file.name}")
 
-            # Analysis button
-            if st.button("Analyze Video", key="analyze_video", type="primary", disabled=st.session_state.processing):
+            # Analysis button with memory check
+            memory_check = get_memory_usage()
+            button_disabled = st.session_state.processing or memory_check > 450
+
+            if st.button("Analyze Video", key="analyze_video", type="primary", disabled=button_disabled):
+                # Final memory check before processing
+                if get_memory_usage() > 450:
+                    st.error("🚫 **Memory usage too high!** Please wait a few minutes before processing more videos.")
+                    st.stop()
+
                 st.session_state.processing = True
                 with st.spinner("Processing video... This may take a moment."):
                     try:
