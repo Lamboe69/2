@@ -81,6 +81,65 @@ except ImportError as e:
     MODELS_AVAILABLE = False
 
 # ============================================================================
+# DEMO MODE PIPELINE (Lightweight fallback)
+# ============================================================================
+
+class DemoPipeline:
+    """Lightweight demo pipeline for free tier when models can't load"""
+
+    def __init__(self):
+        self.sign_vocab = {f"demo_sign_{i}": i for i in range(50)}  # Mock vocabulary
+        self.screening_slots = [
+            'symptom_onset', 'fever', 'cough_hemoptysis', 'diarrhea_dehydration',
+            'rash', 'exposure', 'travel', 'pregnancy', 'hiv_tb_history', 'danger_signs'
+        ]
+        print("DemoPipeline: Using lightweight demo mode (no ML models)")
+
+    def process_video(self, video_path):
+        """Mock video processing for demo"""
+        import time
+        time.sleep(2)  # Simulate processing time
+
+        # Mock result
+        result = {
+            'video_path': video_path,
+            'pose_frames': 30,
+            'signs': {
+                'sign_names': ['demo_sign_1', 'demo_sign_2', 'demo_sign_3'],
+                'num_signs': 3,
+                'confidence': 0.75
+            },
+            'screening': {
+                'screening_slot': 'fever',
+                'response': 'yes',
+                'confidence': 0.82,
+                'slot_logits': [[0.1, 0.2, 0.7]],  # Mock
+                'response_logits': [[0.8, 0.1, 0.1]]  # Mock
+            },
+            'timestamp': datetime.now().isoformat(),
+            'model_version': 'DEMO-v1.0'
+        }
+        return result
+
+    def detect_danger_signs(self, result):
+        """Mock danger sign detection"""
+        # Randomly simulate danger signs for demo
+        import random
+        has_danger = random.choice([True, False])
+
+        return {
+            'danger_detected': has_danger,
+            'danger_signs': ['emergency', 'severe_pain'] if has_danger else [],
+            'triage_level': 'emergency' if has_danger else 'routine',
+            'recommendations': ["Immediate medical attention required" if has_danger else "Continue routine screening"]
+        }
+
+    def implement_skip_logic(self, completed_slots):
+        """Mock skip logic"""
+        available_slots = [slot for slot in self.screening_slots if slot not in completed_slots]
+        return available_slots[0] if available_slots else None
+
+# ============================================================================
 # PAGE CONFIGURATION & STYLING
 # ============================================================================
 
@@ -378,19 +437,25 @@ def load_models():
         st.error("Please check the model files and try again.")
         st.stop()
 
-# Load models with better error handling
+# Load models with fallback to demo mode
 if st.session_state.pipeline is None:
     with st.spinner("Loading USL models... This may take 1-2 minutes."):
         try:
             st.session_state.pipeline = load_models()
         except Exception as e:
-            st.error(f"Model loading failed: {e}")
-            st.stop()
+            st.warning(f"⚠️ Real ML models failed to load: {e}")
+            st.info("🔄 Falling back to demo mode for testing...")
+            try:
+                st.session_state.pipeline = DemoPipeline()
+                st.success("✅ Demo mode loaded successfully!")
+            except Exception as demo_e:
+                st.error(f"Even demo mode failed: {demo_e}")
+                st.stop()
 
 pipeline = st.session_state.pipeline
 
 if pipeline is None:
-    st.error("Failed to load models. Please refresh the page and try again.")
+    st.error("Failed to load any pipeline. Please refresh the page and try again.")
     st.stop()
 
 # ============================================================================
